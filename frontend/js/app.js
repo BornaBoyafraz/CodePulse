@@ -271,6 +271,14 @@ function pollResults(jobId) {
         clearInterval(pollTimer);
         pollTimer = null;
         showResultsState(data);
+      } else if (data.status && data.status.startsWith('error')) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        const detail = data.status.replace(/^error:\s*/i, '') || 'Pipeline failed.';
+        showError(`Analysis failed: ${detail}`);
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze →';
+        loadingState.classList.remove('visible');
       }
     } catch (err) {
       clearInterval(pollTimer);
