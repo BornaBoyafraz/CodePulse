@@ -24,3 +24,21 @@ class ResultsResponse(BaseModel):
     status: str
     repo_url: str
     files: list[FileRisk]
+
+
+class MetricsResponse(BaseModel):
+    job_id: str
+    auc_roc: float
+    avg_precision: float
+    pr_curve_json: str
+
+
+class FileDetailResponse(BaseModel):
+    job_id: str
+    file_path: str
+    risk_score: float
+    top_drivers: list[str]
+    total_commits: int
+    churn_30d: int
+    bus_factor_score: float
+    coupling_score_max: float
