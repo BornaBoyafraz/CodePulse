@@ -22,6 +22,7 @@ from src.features.churn import compute_churn_features
 from src.features.merger import build_feature_matrix
 from src.mining.git_miner import mine_repo
 from src.mining.labeler import label_bugfix_commits
+from src.models.evaluator import evaluate_model
 from src.models.explainer import explain_predictions
 from src.models.trainer import train_model
 
@@ -112,11 +113,25 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
         # Step 5: Train
         model, probas = train_model(X_train, y_train, X_test, y_test)
 
-        # Step 6: SHAP explanations
+        # Step 6: Evaluate (AUC-ROC, PR curve)
+        metrics_dict, pr_curve_json = evaluate_model(model, X_test, y_test, probas)
+
+        # Step 7: SHAP explanations
         drivers, _ = explain_predictions(model, X_test, feature_names, file_paths_test)
 
-        # Step 7: Build ranked FileRisk list
-        # === MOCK DATA REMOVED — real risk scores from ML pipeline replace it ===
+        # Step 8: Build ranked FileRisk list (summary for results endpoint)
+        def _safe_float(df, fp, col):
+            try:
+                return round(float(df.loc[fp, col]), 4) if col in df.columns else 0.0
+            except (KeyError, TypeError):
+                return 0.0
+
+        def _safe_int(df, fp, col):
+            try:
+                return int(df.loc[fp, col]) if col in df.columns else 0
+            except (KeyError, TypeError):
+                return 0
+
         files = sorted(
             [
                 {
@@ -130,7 +145,33 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
             reverse=True,
         )
 
-        update_job(job_id, "complete", files=files)
+        # Extended per-file data — includes raw feature stats for the detail panel
+        extended_files = sorted(
+            [
+                {
+                    "file_path": fp,
+                    "risk_score": round(float(prob) * 100, 1),
+                    "top_drivers": drivers.get(fp, []),
+                    "total_commits": _safe_int(X_test, fp, "total_commits"),
+                    "churn_30d": _safe_int(X_test, fp, "commit_count_30d"),
+                    "bus_factor_score": _safe_float(X_test, fp, "bus_factor_score"),
+                    "coupling_score_max": _safe_float(X_test, fp, "coupling_score_max"),
+                }
+                for fp, prob in zip(file_paths_test, probas)
+            ],
+            key=lambda f: f["risk_score"],
+            reverse=True,
+        )
+
+        full_metrics = {**metrics_dict, "pr_curve_json": pr_curve_json}
+
+        update_job(
+            job_id,
+            "complete",
+            files=files,
+            extended_files=extended_files,
+            metrics=full_metrics,
+        )
         logger.info("Pipeline complete for job %s — %d files ranked.", job_id, len(files))
 
     except Exception as exc:
