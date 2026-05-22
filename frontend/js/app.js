@@ -14,15 +14,21 @@ const loadingState  = document.getElementById('loading-state');
 const errorMsg      = document.getElementById('error-msg');
 const errorText     = document.getElementById('error-text');
 
-const repoHeading  = document.getElementById('repo-heading');
-const statTotal    = document.getElementById('stat-total');
-const statHighRisk = document.getElementById('stat-high-risk');
-const statTime     = document.getElementById('stat-time');
+const repoHeading   = document.getElementById('repo-heading');
+const statTotal     = document.getElementById('stat-total');
+const statHighRisk  = document.getElementById('stat-high-risk');
+const statTime      = document.getElementById('stat-time');
 const riskTableBody = document.getElementById('risk-table-body');
+const metricsChips  = document.getElementById('metrics-chips');
+const prCurveSection = document.getElementById('pr-curve-section');
+const detailPanel   = document.getElementById('detail-panel');
+const detailContent = document.getElementById('detail-content');
+const detailCloseBtn = document.getElementById('detail-close-btn');
 
 // ─── State ─────────────────────────────────────────────────────── //
 
-let pollTimer = null;
+let pollTimer  = null;
+let activeJobId = null;
 
 // ─── Risk Helpers ──────────────────────────────────────────────── //
 
@@ -78,6 +84,9 @@ function showInputState() {
     pollTimer = null;
   }
 
+  closeDetailPanel();
+  activeJobId = null;
+
   resultsScreen.classList.remove('visible');
   inputScreen.style.display = '';
 
@@ -89,9 +98,10 @@ function showInputState() {
   urlInput.focus();
 }
 
-function showResultsState(data) {
+function showResultsState(data, jobId) {
   inputScreen.style.display = 'none';
   resultsScreen.classList.add('visible');
+  activeJobId = jobId;
 
   repoHeading.innerHTML = formatRepoName(data.repo_url)
     .replace(' / ', ' <span>/</span> ');
@@ -103,8 +113,15 @@ function showResultsState(data) {
   statHighRisk.textContent = highRisk;
   statTime.textContent     = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  if (total === 0) {
+    riskTableBody.innerHTML = '<tr><td colspan="4" class="empty-state">Not enough commit history to generate predictions.</td></tr>';
+    metricsChips.innerHTML = '';
+    return;
+  }
+
   renderChart(data.files);
-  renderTable(data.files);
+  renderTable(data.files, jobId);
+  loadMetrics(jobId);
 }
 
 // ─── Plotly Chart ──────────────────────────────────────────────── //
@@ -173,15 +190,122 @@ function renderChart(files) {
   Plotly.newPlot('risk-chart', [trace], layout, config);
 }
 
+// ─── Metrics Chips + PR Curve ──────────────────────────────────── //
+
+async function loadMetrics(jobId) {
+  try {
+    const res = await fetch(`/results/${jobId}/metrics`);
+    if (!res.ok) return;
+    const m = await res.json();
+    renderMetricsChips(m);
+    if (m.pr_curve_json && m.pr_curve_json !== '{}') {
+      renderPRCurve(m.pr_curve_json);
+    }
+  } catch { /* metrics are supplementary — silent fail */ }
+}
+
+function renderMetricsChips(m) {
+  const aucVal  = m.auc_roc   > 0 ? m.auc_roc.toFixed(3)   : 'N/A';
+  const apVal   = m.avg_precision > 0 ? m.avg_precision.toFixed(3) : 'N/A';
+
+  metricsChips.innerHTML = `
+    <div class="metric-chip">
+      <span class="chip-label">AUC-ROC</span>
+      <span class="chip-value">${aucVal}</span>
+    </div>
+    <div class="metric-chip">
+      <span class="chip-label">Avg Precision</span>
+      <span class="chip-value">${apVal}</span>
+    </div>
+  `;
+}
+
+function renderPRCurve(prJson) {
+  try {
+    const fig = JSON.parse(prJson);
+    const data    = fig.data    || [];
+    const layout  = Object.assign({}, fig.layout || {}, {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor:  'transparent',
+    });
+    const config = { displayModeBar: false, responsive: true };
+    Plotly.newPlot('pr-curve-chart', data, layout, config);
+    prCurveSection.removeAttribute('hidden');
+  } catch { /* invalid JSON — skip */ }
+}
+
+// ─── File Detail Panel ─────────────────────────────────────────── //
+
+function openDetailPanel() {
+  detailPanel.classList.add('is-open');
+  detailPanel.setAttribute('aria-hidden', 'false');
+}
+
+function closeDetailPanel() {
+  detailPanel.classList.remove('is-open');
+  detailPanel.setAttribute('aria-hidden', 'true');
+  detailContent.innerHTML = '';
+}
+
+async function loadFileDetail(jobId, filePath) {
+  const encoded = encodeURIComponent(filePath);
+  try {
+    const res = await fetch(`/results/${jobId}/file?path=${encoded}`);
+    if (!res.ok) return;
+    const d = await res.json();
+    renderDetailPanel(d);
+    openDetailPanel();
+  } catch { /* silent */ }
+}
+
+function renderDetailPanel(d) {
+  const cls   = getRiskClass(d.risk_score);
+  const label = getRiskLabel(d.risk_score);
+  const isCritical = d.risk_score >= 80 ? 'is-critical' : '';
+
+  const driversHtml = d.top_drivers.length
+    ? d.top_drivers.map(dr => `<li class="detail-driver-item">${escapeHtml(dr)}</li>`).join('')
+    : '<li class="detail-driver-item muted">No significant drivers identified.</li>';
+
+  detailContent.innerHTML = `
+    <p class="detail-file-path">${escapeHtml(d.file_path)}</p>
+    <span class="risk-badge detail-risk-badge ${cls} ${isCritical}">${label} ${d.risk_score.toFixed(0)}</span>
+
+    <h3 class="detail-section-label">Risk Drivers</h3>
+    <ul class="detail-drivers">${driversHtml}</ul>
+
+    <h3 class="detail-section-label">File Statistics</h3>
+    <div class="detail-stats-grid">
+      <div class="detail-stat">
+        <span class="detail-stat-label">Total Commits</span>
+        <span class="detail-stat-value">${d.total_commits}</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-stat-label">30-day Churn</span>
+        <span class="detail-stat-value">${d.churn_30d}</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-stat-label">Bus Factor</span>
+        <span class="detail-stat-value">${d.bus_factor_score.toFixed(2)}</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-stat-label">Max Coupling</span>
+        <span class="detail-stat-value">${d.coupling_score_max.toFixed(2)}</span>
+      </div>
+    </div>
+  `;
+}
+
 // ─── Risk Table ────────────────────────────────────────────────── //
 
-function renderTable(files) {
+function renderTable(files, jobId) {
   const sorted = [...files].sort((a, b) => b.risk_score - a.risk_score);
   riskTableBody.innerHTML = '';
 
   sorted.forEach((file, index) => {
-    const cls   = getRiskClass(file.risk_score);
-    const label = getRiskLabel(file.risk_score);
+    const cls       = getRiskClass(file.risk_score);
+    const label     = getRiskLabel(file.risk_score);
+    const isCritical = file.risk_score >= 80 ? 'is-critical' : '';
 
     const driversHtml = file.top_drivers
       .slice(0, 3)
@@ -189,14 +313,17 @@ function renderTable(files) {
       .join('');
 
     const tr = document.createElement('tr');
+    tr.className = 'clickable-row';
+    tr.setAttribute('title', 'Click for full breakdown');
     tr.innerHTML = `
       <td class="row-rank">${index + 1}</td>
       <td class="file-path">${escapeHtml(file.file_path)}</td>
       <td style="text-align:center">
-        <span class="risk-badge ${cls}">${label} ${file.risk_score.toFixed(0)}</span>
+        <span class="risk-badge ${cls} ${isCritical}">${label} ${file.risk_score.toFixed(0)}</span>
       </td>
       <td class="drivers-cell">${driversHtml}</td>
     `;
+    tr.addEventListener('click', () => loadFileDetail(jobId, file.file_path));
     riskTableBody.appendChild(tr);
   });
 }
@@ -270,7 +397,7 @@ function pollResults(jobId) {
       if (data.status === 'complete') {
         clearInterval(pollTimer);
         pollTimer = null;
-        showResultsState(data);
+        showResultsState(data, jobId);
       } else if (data.status && data.status.startsWith('error')) {
         clearInterval(pollTimer);
         pollTimer = null;
@@ -302,6 +429,15 @@ urlInput.addEventListener('keydown', (e) => {
 urlInput.addEventListener('input', clearError);
 
 document.getElementById('reset-btn').addEventListener('click', showInputState);
+
+detailCloseBtn.addEventListener('click', closeDetailPanel);
+
+// Close detail panel on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && detailPanel.classList.contains('is-open')) {
+    closeDetailPanel();
+  }
+});
 
 // ─── Init ──────────────────────────────────────────────────────── //
 
