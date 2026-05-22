@@ -29,6 +29,8 @@ def create_job(repo_url: str) -> str:
         "status": "pending",
         "repo_url": repo_url,
         "files": [],
+        "extended_files": [],
+        "metrics": {},
         "created_at": datetime.now(timezone.utc).isoformat(),
         "error": None,
     }
@@ -40,9 +42,11 @@ def update_job(
     status: str,
     *,
     files: list[dict] | None = None,
+    extended_files: list[dict] | None = None,
+    metrics: dict | None = None,
     error: str | None = None,
 ) -> None:
-    """Update the status (and optionally the files or error) of an existing job.
+    """Update the status (and optionally the files, metrics, or error) of an existing job.
 
     Silently does nothing if job_id is not found — callers should not raise on
     a missing job during pipeline teardown.
@@ -51,7 +55,9 @@ def update_job(
         job_id: The job to update.
         status: New status string — one of "pending", "running", "complete",
             or an error string starting with "error".
-        files: If provided, replaces the job's file list.
+        files: If provided, replaces the job's file list (summary, for results endpoint).
+        extended_files: If provided, replaces the job's extended file list (detail view data).
+        metrics: If provided, replaces the job's metrics dict (auc_roc, avg_precision, pr_curve_json).
         error: If provided, stored under the "error" key.
     """
     if job_id not in jobs:
@@ -59,6 +65,10 @@ def update_job(
     jobs[job_id]["status"] = status
     if files is not None:
         jobs[job_id]["files"] = files
+    if extended_files is not None:
+        jobs[job_id]["extended_files"] = extended_files
+    if metrics is not None:
+        jobs[job_id]["metrics"] = metrics
     if error is not None:
         jobs[job_id]["error"] = error
 
