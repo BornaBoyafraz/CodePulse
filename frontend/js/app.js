@@ -28,8 +28,20 @@ const detailCloseBtn = document.getElementById('detail-close-btn');
 
 // ─── State ─────────────────────────────────────────────────────── //
 
-let pollTimer  = null;
+let pollTimer   = null;
 let activeJobId = null;
+
+// ─── Pipeline Stage Labels ─────────────────────────────────────── //
+
+const STAGE_LABELS = {
+  pending:    'Queued…',
+  running:    'Starting pipeline…',
+  mining:     'Mining commit history — this may take 60–90 seconds…',
+  labeling:   'Labeling bug-fix commits…',
+  features:   'Computing file features…',
+  training:   'Training XGBoost model…',
+  explaining: 'Generating SHAP explanations…',
+};
 
 // ─── Risk Helpers ──────────────────────────────────────────────── //
 
@@ -78,6 +90,39 @@ function clearError() {
 }
 
 // ─── State Transitions ─────────────────────────────────────────── //
+
+function showSkeletonState(repoUrl) {
+  inputScreen.style.display = 'none';
+  loadingState.classList.remove('visible');
+  resultsScreen.classList.add('visible');
+
+  repoHeading.innerHTML    = formatRepoName(repoUrl).replace(' / ', ' <span>/</span> ');
+  statTotal.textContent    = '—';
+  statHighRisk.textContent = '—';
+  statTime.textContent     = '—';
+  metricsChips.innerHTML   = '';
+
+  riskTableBody.innerHTML = Array.from({ length: 8 }, () => `
+    <tr>
+      <td class="row-rank"><span class="skeleton skeleton-inline"></span></td>
+      <td class="file-path"><span class="skeleton skeleton-path"></span></td>
+      <td style="text-align:center"><span class="skeleton skeleton-badge-sm"></span></td>
+      <td class="drivers-cell">
+        <span class="skeleton skeleton-tag"></span>
+        <span class="skeleton skeleton-tag"></span>
+      </td>
+    </tr>
+  `).join('') + `
+    <tr id="skeleton-status-row">
+      <td colspan="4" class="skeleton-status-text" id="skeleton-status-text">Queued…</td>
+    </tr>
+  `;
+}
+
+function updateSkeletonStatus(status) {
+  const el = document.getElementById('skeleton-status-text');
+  if (el) el.textContent = STAGE_LABELS[status] || 'Analyzing…';
+}
 
 function showInputState() {
   if (pollTimer) {
@@ -389,6 +434,9 @@ async function submitAnalysis() {
     return;
   }
 
+  // Switch to results screen immediately with skeleton rows
+  showSkeletonState(repoUrl);
+  activeJobId = jobId;
   pollResults(jobId);
 }
 
@@ -417,18 +465,18 @@ function pollResults(jobId) {
         clearInterval(pollTimer);
         pollTimer = null;
         const detail = data.status.replace(/^error:\s*/i, '') || 'Pipeline failed.';
+        // Return to input screen and show the error
+        showInputState();
         showError(`Analysis failed: ${detail}`);
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Analyze →';
-        loadingState.classList.remove('visible');
+      } else {
+        // Still running — update skeleton status text
+        updateSkeletonStatus(data.status);
       }
     } catch (err) {
       clearInterval(pollTimer);
       pollTimer = null;
+      showInputState();
       showError('Connection lost while polling for results.');
-      analyzeBtn.disabled = false;
-      analyzeBtn.textContent = 'Analyze →';
-      loadingState.classList.remove('visible');
     }
   }, 2000);
 }
