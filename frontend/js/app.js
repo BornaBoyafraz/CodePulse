@@ -19,8 +19,9 @@ const statTotal     = document.getElementById('stat-total');
 const statHighRisk  = document.getElementById('stat-high-risk');
 const statTime      = document.getElementById('stat-time');
 const riskTableBody = document.getElementById('risk-table-body');
-const metricsChips  = document.getElementById('metrics-chips');
-const prCurveSection = document.getElementById('pr-curve-section');
+const metricsChips   = document.getElementById('metrics-chips');
+const prCurveSection  = document.getElementById('pr-curve-section');
+const treemapSection  = document.getElementById('treemap-section');
 const detailPanel   = document.getElementById('detail-panel');
 const detailContent = document.getElementById('detail-content');
 const detailCloseBtn = document.getElementById('detail-close-btn');
@@ -122,6 +123,7 @@ function showResultsState(data, jobId) {
   renderChart(data.files);
   renderTable(data.files, jobId);
   loadMetrics(jobId);
+  loadTreemap(jobId);
 }
 
 // ─── Plotly Chart ──────────────────────────────────────────────── //
@@ -191,6 +193,19 @@ function renderChart(files) {
 }
 
 // ─── Metrics Chips + PR Curve ──────────────────────────────────── //
+
+async function loadTreemap(jobId) {
+  try {
+    const res = await fetch(`/results/${jobId}/treemap`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.treemap_json || data.treemap_json === '{}') return;
+    const fig = JSON.parse(data.treemap_json);
+    const layout = Object.assign({}, fig.layout || {}, { paper_bgcolor: 'transparent' });
+    Plotly.newPlot('treemap-chart', fig.data || [], layout, { displayModeBar: false, responsive: true });
+    treemapSection.removeAttribute('hidden');
+  } catch { /* silent — treemap is supplementary */ }
+}
 
 async function loadMetrics(jobId) {
   try {
