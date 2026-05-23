@@ -678,6 +678,14 @@ code, .mono {
   min-height: 320px;
 }
 
+#treemap-chart {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 380px;
+}
+
 /* ─── Table Hint ────────────────────────────────────────────────── */
 
 .table-hint {
