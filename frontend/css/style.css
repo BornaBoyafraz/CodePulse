@@ -537,6 +537,41 @@ code, .mono {
   letter-spacing: 0.01em;
 }
 
+/* ─── Skeleton Loading ──────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    #2d333b 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+.skeleton-path     { width: 260px; height: 13px; }
+.skeleton-inline   { width: 22px;  height: 13px; }
+.skeleton-badge-sm { width: 58px;  height: 22px; border-radius: 100px; }
+.skeleton-tag      { width: 68px;  height: 20px; border-radius: 100px; }
+
+.skeleton-status-text {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding: var(--space-md) !important;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
 /* ─── Reduced Motion ────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -544,6 +579,10 @@ code, .mono {
     animation: none;
     border-top-color: var(--accent);
     opacity: 0.6;
+  }
+  .skeleton {
+    animation: none;
+    opacity: 0.5;
   }
   * {
     transition-duration: 0.01ms !important;
