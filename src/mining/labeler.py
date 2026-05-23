@@ -4,7 +4,7 @@ from __future__ import annotations
 import pandas as pd
 
 _BUGFIX_REGEX = (
-    r"\b(fix(?:e[ds])?|bug|error|defect|patch|issue|crash|"
+    r"\b(?:fix(?:e[ds])?|bug|error|defect|patch|issue|crash|"
     r"fault|repair|resolve[ds]?|hotfix)\b"
 )
 
