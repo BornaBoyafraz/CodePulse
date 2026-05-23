@@ -75,8 +75,8 @@ def build_risk_barchart(files: list[dict]) -> str:
     ]
 
     layout = go.Layout(
-        paper_bgcolor="transparent",
-        plot_bgcolor="transparent",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=200, r=40, t=20, b=40),
         xaxis=dict(
             range=[0, 100],
@@ -145,7 +145,7 @@ def build_risk_treemap(files: list[dict]) -> str:
     )
 
     layout = go.Layout(
-        paper_bgcolor="transparent",
+        paper_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=0, r=0, t=0, b=0),
         font=dict(family="Inter", color="#e6edf3"),
     )
@@ -172,8 +172,8 @@ def build_pr_curve(pr_curve_json: str) -> str:
     try:
         fig = pio.from_json(pr_curve_json)
         fig.update_layout(
-            paper_bgcolor="transparent",
-            plot_bgcolor="transparent",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
         )
         return pio.to_json(fig)
     except Exception:
