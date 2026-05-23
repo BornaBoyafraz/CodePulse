@@ -106,3 +106,31 @@ def get_file_detail(
         raise HTTPException(status_code=404, detail=f"File '{path}' not found in job results.")
 
     return FileDetailResponse(job_id=job_id, **matched)
+
+
+@router.get("/results/{job_id}/treemap")
+def get_treemap(job_id: str) -> dict:
+    """Return a Plotly treemap JSON for all files in a completed job.
+
+    Args:
+        job_id: UUID hex string returned by POST /analyze.
+
+    Returns:
+        Dict with 'treemap_json' key containing a Plotly Figure JSON string,
+        or '{}' if files list is empty.
+
+    Raises:
+        HTTPException 404: If job_id is not found in the store.
+    """
+    from src.viz.charts import build_risk_treemap
+
+    job = get_job(job_id)
+    if job is None:
+        logger.warning("Treemap requested for unknown job_id=%s", job_id)
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+
+    files = job.get("files", [])
+    if not files:
+        return {"treemap_json": "{}"}
+
+    return {"treemap_json": build_risk_treemap(files)}
