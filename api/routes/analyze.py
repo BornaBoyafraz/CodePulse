@@ -93,11 +93,29 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
         # Shallow clone for complexity analysis (idempotent)
         _ensure_clone(repo_url, clone_dir)
 
-        # Step 1–2: Mine and label
+        # Step 1: Mine commit history
+        update_job(job_id, "mining")
         commits_df = mine_repo(repo_url, clone_dir=clone_dir, cache_dir=_CACHE_DIR)
+
+        # Step 2: Label bug-fix commits
+        update_job(job_id, "labeling")
         labeled_df = label_bugfix_commits(commits_df)
 
+        # Guard: repo needs at least 100 commits for a meaningful temporal split
+        if len(labeled_df) < 100:
+            update_job(
+                job_id,
+                "error: This repo has fewer than 100 commits — not enough history to generate meaningful predictions.",
+                error="Not enough commit history (need ≥ 100 commits).",
+            )
+            logger.warning(
+                "[pipeline] Job %s — repo %s has only %d commit rows. Aborting.",
+                job_id, repo_url, len(labeled_df),
+            )
+            return
+
         # Step 3: Feature engineering
+        update_job(job_id, "features")
         churn_df = compute_churn_features(labeled_df)
         coupling_df = compute_coupling_features(labeled_df, churn_df)
         auth_df = compute_authorship_features(labeled_df)
@@ -111,12 +129,23 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
         )
 
         # Step 5: Train
+        update_job(job_id, "training")
         model, probas = train_model(X_train, y_train, X_test, y_test)
+
+        # Warn if model returned uniform probabilities (single-class fallback)
+        unique_probas = len(set(round(float(p), 3) for p in probas.tolist()))
+        if unique_probas == 1:
+            logger.warning(
+                "[pipeline] Job %s — model returned uniform probabilities (%.3f). "
+                "Training likely skipped due to single-class labels in training set.",
+                job_id, float(probas[0]) if len(probas) else 0.5,
+            )
 
         # Step 6: Evaluate (AUC-ROC, PR curve)
         metrics_dict, pr_curve_json = evaluate_model(model, X_test, y_test, probas)
 
         # Step 7: SHAP explanations
+        update_job(job_id, "explaining")
         drivers, _ = explain_predictions(model, X_test, feature_names, file_paths_test)
 
         # Step 8: Build ranked FileRisk list (summary for results endpoint)
