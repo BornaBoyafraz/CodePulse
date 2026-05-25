@@ -9,8 +9,10 @@ from __future__ import annotations
 import logging
 import subprocess
 import threading
+import time
 from pathlib import Path
 
+import joblib
 from fastapi import APIRouter
 
 from api.schemas import AnalyzeRequest, AnalyzeResponse
@@ -31,6 +33,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _CACHE_DIR = Path("data/cache")
+_RESULTS_CACHE_DIR = Path("data/cache/results")
+_RESULTS_TTL_SECONDS = 86400  # 24 hours
+
+
+def _results_cache_path(repo_url: str) -> Path:
+    return _RESULTS_CACHE_DIR / f"{_repo_slug(repo_url)}_results.joblib"
 
 
 def _repo_slug(repo_url: str) -> str:
@@ -87,6 +95,26 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
         update_job(job_id, "running")
 
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _RESULTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Fast path: serve from results cache if fresh (< 24 h old)
+        _rcache = _results_cache_path(repo_url)
+        if _rcache.exists():
+            try:
+                if time.time() - _rcache.stat().st_mtime < _RESULTS_TTL_SECONDS:
+                    cached = joblib.load(_rcache)
+                    update_job(
+                        job_id,
+                        "complete",
+                        files=cached["files"],
+                        extended_files=cached["extended_files"],
+                        metrics=cached["metrics"],
+                    )
+                    logger.info("[pipeline] Loaded results from cache for %s", repo_url)
+                    return
+            except Exception as cache_exc:
+                logger.warning("[pipeline] Results cache unreadable for %s — rerunning: %s", repo_url, cache_exc)
+
         slug = _repo_slug(repo_url)
         clone_dir = _CACHE_DIR / f"{slug}_clone"
 
@@ -193,6 +221,16 @@ def _run_pipeline(job_id: str, repo_url: str) -> None:
         )
 
         full_metrics = {**metrics_dict, "pr_curve_json": pr_curve_json}
+
+        # Persist results so repeat submissions skip the full pipeline
+        try:
+            joblib.dump(
+                {"files": files, "extended_files": extended_files, "metrics": full_metrics},
+                _results_cache_path(repo_url),
+                compress=3,
+            )
+        except Exception as write_exc:
+            logger.warning("[pipeline] Could not write results cache for %s: %s", repo_url, write_exc)
 
         update_job(
             job_id,
