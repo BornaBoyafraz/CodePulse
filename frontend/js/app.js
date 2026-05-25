@@ -142,6 +142,24 @@ function showInputState() {
   urlInput.value = '';
   clearError();
   urlInput.focus();
+
+  // Reset table
+  riskTableBody.innerHTML = '';
+
+  // Purge charts so stale data never bleeds into a fresh analysis
+  if (document.getElementById('risk-chart'))     Plotly.purge('risk-chart');
+  if (document.getElementById('treemap-chart'))  Plotly.purge('treemap-chart');
+  if (document.getElementById('pr-curve-chart')) Plotly.purge('pr-curve-chart');
+
+  // Hide conditional sections (they start hidden and are un-hidden after load)
+  treemapSection.setAttribute('hidden', '');
+  prCurveSection.setAttribute('hidden', '');
+
+  // Reset stat strips
+  statTotal.textContent    = '—';
+  statHighRisk.textContent = '—';
+  statTime.textContent     = '—';
+  metricsChips.innerHTML   = '';
 }
 
 function showResultsState(data, jobId) {
@@ -464,10 +482,15 @@ function pollResults(jobId) {
       } else if (data.status && data.status.startsWith('error')) {
         clearInterval(pollTimer);
         pollTimer = null;
-        const detail = data.status.replace(/^error:\s*/i, '') || 'Pipeline failed.';
-        // Return to input screen and show the error
+        const raw = data.status.replace(/^error:\s*/i, '') || 'Pipeline failed.';
+        const lower = raw.toLowerCase();
+        const friendly = lower.includes('fewer than 100 commits') || lower.includes('not enough')
+          ? "This repo doesn't have enough commit history (need at least 100 commits) to generate meaningful predictions."
+          : lower.includes('not found') || raw.includes('404')
+          ? 'Repository not found. Make sure the URL is correct and the repo is public.'
+          : `Analysis failed: ${raw}`;
         showInputState();
-        showError(`Analysis failed: ${detail}`);
+        showError(friendly);
       } else {
         // Still running — update skeleton status text
         updateSkeletonStatus(data.status);
