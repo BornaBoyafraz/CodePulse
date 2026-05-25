@@ -27,7 +27,7 @@ _OUTPUT_COLUMNS: Final[tuple[str, ...]] = (
     "unique_coupling_partners",
 )
 
-_MAX_FILES_PER_COMMIT: Final[int] = 50
+_MAX_FILES_PER_COMMIT: Final[int] = 30
 
 
 def _validate_input(df: pd.DataFrame) -> None:
@@ -46,7 +46,7 @@ def compute_coupling_features(
 
     Two files are 'coupled' if they frequently appear together in the same
     commits. Tightly coupled files share risk — if one is bug-prone, its
-    partners inherit elevated risk. Commits touching more than 50 files are
+    partners inherit elevated risk. Commits touching more than 30 files are
     excluded as mass refactors that produce noise rather than meaningful signal.
 
     Args:
@@ -82,7 +82,14 @@ def compute_coupling_features(
 
     # Build per-commit file lists, then filter mass-refactor commits.
     commit_files = df.groupby("commit_hash")["file_path"].apply(list)
+    total_commit_groups = len(commit_files)
     commit_files = commit_files[commit_files.apply(len) <= _MAX_FILES_PER_COMMIT]
+    skipped = total_commit_groups - len(commit_files)
+    if skipped:
+        logger.info(
+            "[coupling] Skipped %d mass-refactor commits (>%d files touched)",
+            skipped, _MAX_FILES_PER_COMMIT,
+        )
 
     # Count co-changes for every ordered pair (f1 < f2 lexicographically).
     co_change_counts: dict[tuple[str, str], int] = defaultdict(int)
