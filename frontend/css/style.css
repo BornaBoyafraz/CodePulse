@@ -572,6 +572,15 @@ code, .mono {
   letter-spacing: 0.01em;
 }
 
+/* ─── Focus / Keyboard Navigation ──────────────────────────────── */
+
+button:focus-visible,
+input:focus-visible,
+.clickable-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ─── Reduced Motion ────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -617,8 +626,15 @@ code, .mono {
     font-size: 0.82rem;
   }
 
-  .drivers-cell {
+  .drivers-cell,
+  th.drivers-header {
     display: none;
+  }
+
+  .detail-panel {
+    width: 100%;
+    right: 0;
+    left: 0;
   }
 }
 
@@ -915,9 +931,3 @@ code, .mono {
   color: var(--text-primary);
 }
 
-/* Mobile: hide detail panel on very small screens */
-@media (max-width: 480px) {
-  .detail-panel {
-    width: 100%;
-  }
-}
