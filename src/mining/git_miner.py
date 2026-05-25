@@ -30,19 +30,24 @@ def mine_repo(
     repo_url: str,
     clone_dir: str | Path | None = None,
     cache_dir: Path = Path("data/cache"),
+    max_commits: int = 15000,
 ) -> pd.DataFrame:
-    """Extract the full commit history of a public GitHub repository.
+    """Extract the commit history of a public GitHub repository.
 
     Each row represents one (commit, modified_file) pair. Merge commits are
     skipped. File paths are rename-resolved to their post-rename canonical form.
+
+    For repos with more than max_commits non-merge commits, only the most recent
+    max_commits are mined (traversal runs newest-first and stops early).
 
     Results are persisted to <cache_dir>/<owner>_<name>.joblib on first run
     and loaded from cache on subsequent calls.
 
     Args:
-        repo_url:  Public GitHub URL, e.g. "https://github.com/pallets/flask".
-        clone_dir: Optional local path to clone into. Uses a temp dir if None.
-        cache_dir: Directory for joblib cache files.
+        repo_url:   Public GitHub URL, e.g. "https://github.com/pallets/flask".
+        clone_dir:  Optional local path to clone into. Uses a temp dir if None.
+        cache_dir:  Directory for joblib cache files.
+        max_commits: Hard cap on non-merge commits mined. Defaults to 15 000.
 
     Returns:
         DataFrame with columns: commit_hash, commit_date, author_name, message,
@@ -58,11 +63,13 @@ def mine_repo(
         logger.info("Cache hit — loaded %d rows from %s", len(df), cache_path)
         return df
 
-    pydriller_kwargs: dict = {}
+    pydriller_kwargs: dict = {"order": "reverse"}  # newest-first so we can cap early
     if clone_dir is not None:
         pydriller_kwargs["clone_repo_to"] = str(clone_dir)
 
     rows: list[dict] = []
+    commit_count = 0
+    limited = False
 
     for commit in tqdm(
         Repository(repo_url, **pydriller_kwargs).traverse_commits(),
@@ -93,6 +100,17 @@ def mine_repo(
                 })
         except Exception as exc:
             logger.warning("Skipping commit %s: %s", commit.hash[:7], exc)
+
+        commit_count += 1
+        if commit_count >= max_commits:
+            limited = True
+            break
+
+    if limited:
+        logger.warning(
+            "[miner] Repo has >%d commits — limiting to most recent %d for performance",
+            max_commits, max_commits,
+        )
 
     if not rows:
         logger.warning("No commits extracted from %s", repo_url)
