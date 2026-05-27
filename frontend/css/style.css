@@ -121,6 +121,7 @@ code, .mono {
   min-height: 100vh;
   padding: var(--space-xl) var(--space-md);
   text-align: center;
+  position: relative;
 }
 
 .hero-logo {
@@ -930,4 +931,40 @@ input:focus-visible,
   opacity: 1;
   color: var(--text-primary);
 }
+
+/* ─── Back link (input screen) ────────────────────────────────── */
+.back-link {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-xl);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color var(--transition-fast);
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+/* ─── Input hint (example repos) ─────────────────────────────── */
+.input-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.65;
+  margin-top: -4px;
+  max-width: none;
+}
+
+/* ─── Stat card danger variant (high risk) ────────────────────── */
+.stat-card--danger {
+  border-top: 2px solid var(--risk-high);
+}
+
+/* ─── Section accent span (decorative, CSS ::before handles it) ─ */
+.section-accent { display: none; }
 

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodePulse — Predictive Code Risk</title>
+  <meta name="description" content="CodePulse mines your git history and uses machine learning to rank every file by bug risk — before anyone writes the code." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/landing.css" />
+</head>
+<body>
+
+  <!-- ══════════════ NAVBAR ══════════════ -->
+  <nav class="site-nav" aria-label="CodePulse navigation">
+    <a href="/landing.html" class="nav-brand" aria-label="CodePulse home">
+      <svg width="26" height="26" viewBox="0 0 36 36" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="10" fill="#f97316" fill-opacity="0.12"/>
+        <path d="M20 6L11 20H18L16 30L25 16H18L20 6Z" fill="#f97316" stroke="#f97316" stroke-width="0.5" stroke-linejoin="round"/>
+      </svg>
+      <span>Code<span class="accent">Pulse</span></span>
+    </a>
+    <div class="nav-actions">
+      <a href="https://github.com/BornaBoyafraz/CodePulse" target="_blank" rel="noopener" class="btn-outline" style="font-size:0.875rem; padding:0.5rem 1.1rem;">
+        GitHub ↗
+      </a>
+      <a href="/index.html" class="btn-primary" style="font-size:0.875rem; padding:0.5rem 1.1rem;">
+        Try it free →
+      </a>
+    </div>
+  </nav>
+
+  <!-- ══════════════ HERO ══════════════ -->
+  <section class="hero hero-bg" aria-label="Hero">
+
+    <!-- Eyebrow badge -->
+    <div class="hero-badge" aria-label="Product type">
+      <span class="badge-dot"></span>
+      AI-powered · Temporal ML · Fully Explainable
+    </div>
+
+    <h1>
+      Predict which files will break<br />
+      <span class="accent">before anyone writes the code.</span>
+    </h1>
+    <p class="sub">
+      CodePulse mines the full commit history of any GitHub repository and uses
+      machine learning to rank every file by bug risk. Not static analysis — temporal prediction.
+      Powered by XGBoost and SHAP.
+    </p>
+    <div class="hero-cta">
+      <a href="/index.html" class="btn-primary lg">Try it free →</a>
+      <a href="https://github.com/BornaBoyafraz/CodePulse" target="_blank" rel="noopener" class="btn-outline lg">View on GitHub</a>
+    </div>
+
+    <!-- Demo strip -->
+    <p class="demo-strip">
+      Tested on &nbsp;
+      <span class="repo-tag">pallets/flask</span>
+      <span class="repo-tag">psf/requests</span>
+      <span class="repo-tag">scikit-learn/scikit-learn</span>
+      <span class="repo-tag">django/django</span>
+    </p>
+
+  </section>
+
+  <!-- ══════════════ HOW IT WORKS ══════════════ -->
+  <section class="section" aria-label="How it works">
+    <div class="section-label">
+      <h2>How It Works</h2>
+      <p>Three steps from a repo URL to a full risk map.</p>
+    </div>
+
+    <div class="steps-grid">
+
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Point it at any GitHub repo</h3>
+        <p>
+          Paste any public GitHub repository URL. CodePulse extracts the full commit
+          history — no installation, no API key, no setup required.
+        </p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>ML analyzes years of commit history</h3>
+        <p>
+          An XGBoost model trained on historical patterns — with a strict temporal split
+          to prevent data leakage — scores every file across 10+ engineered risk signals.
+        </p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Get a ranked risk map with plain-English explanations</h3>
+        <p>
+          Every file gets a 0–100 risk score. SHAP values break down exactly which
+          signals drive each prediction — so you always know <em>why</em> a file is flagged.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════ WHAT IT DETECTS ══════════════ -->
+  <section class="section" style="background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);" aria-label="Risk signals">
+    <div class="section-label">
+      <h2>What CodePulse Detects</h2>
+      <p>Four proven signals — extracted directly from your commit history.</p>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">🔁</div>
+        <h3>Code Churn</h3>
+        <p>
+          Files that change constantly are statistically more likely to introduce bugs.
+          CodePulse tracks rolling churn windows (30, 60, 90 days) and spike ratios.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Bus Factor</h3>
+        <p>
+          Files dominated by a single author carry hidden fragility. Low author diversity
+          is a single point of failure — and a reliable predictor of future breakage.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>File Coupling</h3>
+        <p>
+          Files that always change together share risk. CodePulse models co-change
+          patterns as a graph network and propagates risk across tightly coupled clusters.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Complexity Trends</h3>
+        <p>
+          Rising cyclomatic complexity without matching coverage is a reliable failure
+          signal. CodePulse tracks complexity growth over time using Radon analysis.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════ WHY IT'S DIFFERENT ══════════════ -->
+  <section class="section why-section" aria-label="Why CodePulse is different">
+    <div class="why-inner">
+      <h2>Not Static Analysis. Temporal Prediction.</h2>
+      <p>
+        Most code tools read what your codebase looks like right now. CodePulse reads the
+        <em>history</em> of how it has evolved — the full record of changes, failures, and
+        patterns over time. Failure lives in the past, not the present state. CodePulse
+        predicts rather than reacts, so you can act before the bug is written.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ CTA BANNER ══════════════ -->
+  <section class="cta-banner" aria-label="Call to action">
+    <h2>Ready to see your codebase's risk profile?</h2>
+    <a href="/index.html" class="btn-primary lg">Try it free →</a>
+  </section>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <footer class="site-footer" aria-label="Site footer">
+    CodePulse — Hackathon Project &nbsp;·&nbsp;
+    <a href="https://github.com/BornaBoyafraz/CodePulse" target="_blank" rel="noopener">
+      github.com/BornaBoyafraz/CodePulse
+    </a>
+  </footer>
+
+</body>
+</html>

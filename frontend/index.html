@@ -24,9 +24,13 @@
   ════════════════════════════════════════════════════════════ -->
   <main id="input-screen" role="main">
 
+    <!-- Back link -->
+    <a href="/landing.html" class="back-link" aria-label="Back to landing page">
+      ← CodePulse
+    </a>
+
     <div class="hero-logo" aria-label="CodePulse">
-      <!-- Pulse / lightning icon -->
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <svg width="40" height="40" viewBox="0 0 36 36" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
         <rect width="36" height="36" rx="10" fill="#f97316" fill-opacity="0.12"/>
         <path d="M20 6L11 20H18L16 30L25 16H18L20 6Z" fill="#f97316" stroke="#f97316" stroke-width="0.5" stroke-linejoin="round"/>
       </svg>
@@ -34,7 +38,7 @@
     </div>
 
     <p class="hero-subtitle">
-      Predict which files in any GitHub repo are most likely to introduce bugs.
+      Enter any public GitHub repository URL to predict which files are most likely to introduce bugs.
     </p>
 
     <div class="input-group">
@@ -54,19 +58,29 @@
         Analyze →
       </button>
 
+      <p class="input-hint">e.g. pallets/flask &nbsp;·&nbsp; psf/requests &nbsp;·&nbsp; django/django</p>
+
       <div id="loading-state" class="loading-state" aria-live="polite" aria-label="Loading">
         <div class="spinner" role="status"></div>
-        <span>Analyzing repository…</span>
+        <span id="loading-text">Analyzing repository…</span>
       </div>
 
       <div id="error-msg" class="error-msg" role="alert" aria-live="assertive">
-        <!-- SVG X icon -->
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
           <circle cx="7" cy="7" r="6.5" stroke="#f85149"/>
           <path d="M4.5 4.5L9.5 9.5M9.5 4.5L4.5 9.5" stroke="#f85149" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <span id="error-text"></span>
       </div>
+    </div>
+
+    <!-- Skeleton loading (shown while pipeline runs) -->
+    <div id="skeleton-screen" class="skeleton-screen" hidden aria-label="Loading results" aria-live="polite">
+      <div class="skeleton-bar wide"></div>
+      <div class="skeleton-bar medium"></div>
+      <div class="skeleton-bar short"></div>
+      <div class="skeleton-bar wide"></div>
+      <div class="skeleton-bar medium"></div>
     </div>
 
     <!-- How it works expandable -->
@@ -80,7 +94,7 @@
     </details>
 
     <footer class="hero-footer" aria-label="Powered by">
-      powered by PyDriller · XGBoost · SHAP
+      PyDriller &nbsp;·&nbsp; XGBoost &nbsp;·&nbsp; SHAP &nbsp;·&nbsp; NetworkX
     </footer>
 
   </main>
@@ -92,7 +106,7 @@
 
     <!-- Sticky navbar -->
     <nav class="navbar" aria-label="CodePulse navigation">
-      <a href="#" class="nav-logo" aria-label="CodePulse home" onclick="return false;">
+      <a href="/landing.html" class="nav-logo" aria-label="Back to CodePulse home">
         <svg width="24" height="24" viewBox="0 0 36 36" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
           <rect width="36" height="36" rx="10" fill="#f97316" fill-opacity="0.12"/>
           <path d="M20 6L11 20H18L16 30L25 16H18L20 6Z" fill="#f97316" stroke="#f97316" stroke-width="0.5" stroke-linejoin="round"/>
@@ -101,7 +115,6 @@
       </a>
 
       <button id="reset-btn" class="reset-btn" type="button" aria-label="Analyze another repository">
-        <!-- Arrow left -->
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 2L4 7L9 12" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -121,7 +134,7 @@
           <span class="stat-label">Files Analyzed</span>
           <span id="stat-total" class="stat-value">—</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card--danger">
           <span class="stat-label">High Risk Files</span>
           <span id="stat-high-risk" class="stat-value high-risk">—</span>
         </div>
@@ -136,26 +149,34 @@
 
       <!-- Risk Overview chart -->
       <section class="chart-section" aria-labelledby="chart-heading">
-        <h2 id="chart-heading" class="section-header">Risk Overview — Top 10 Files</h2>
+        <h2 id="chart-heading" class="section-header">
+          <span class="section-accent"></span>Risk Overview — Top 10 Files
+        </h2>
         <div id="risk-chart" role="img" aria-label="Top 10 riskiest files bar chart"></div>
       </section>
 
       <!-- Codebase Risk Map (treemap) -->
       <section class="chart-section" id="treemap-section" aria-labelledby="treemap-heading" hidden>
-        <h2 id="treemap-heading" class="section-header">Codebase Risk Map</h2>
+        <h2 id="treemap-heading" class="section-header">
+          <span class="section-accent"></span>Codebase Risk Map
+        </h2>
         <div id="treemap-chart" role="img" aria-label="Codebase risk treemap"></div>
       </section>
 
       <!-- Precision-Recall curve -->
       <section class="chart-section" id="pr-curve-section" aria-labelledby="pr-heading" hidden>
-        <h2 id="pr-heading" class="section-header">Model Precision-Recall Curve</h2>
+        <h2 id="pr-heading" class="section-header">
+          <span class="section-accent"></span>Model Precision-Recall Curve
+        </h2>
         <div id="pr-curve-chart" role="img" aria-label="Precision-recall curve"></div>
       </section>
 
       <!-- File Risk Rankings table -->
       <section class="table-section" aria-labelledby="table-heading">
-        <h2 id="table-heading" class="section-header">File Risk Rankings</h2>
-        <p class="table-hint">Click any row to see a full breakdown for that file.</p>
+        <h2 id="table-heading" class="section-header">
+          <span class="section-accent"></span>File Risk Rankings
+        </h2>
+        <p class="table-hint">Click any row to see a full SHAP breakdown for that file.</p>
         <div class="risk-table-wrapper">
           <table class="risk-table" aria-label="File risk rankings">
             <thead>

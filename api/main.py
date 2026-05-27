@@ -9,6 +9,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import analyze, results
@@ -32,6 +33,12 @@ app.add_middleware(
 app.include_router(analyze.router)
 app.include_router(results.router)
 
+
+@app.get("/", include_in_schema=False)
+def root():
+    """Redirect visitors from / to the landing page."""
+    return RedirectResponse(url="/landing.html")
+
+
 # Static mount last — explicit API routes above take precedence.
-# html=True makes index.html the fallback for any unmatched path (SPA mode).
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory="frontend"), name="frontend")
