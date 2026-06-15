@@ -6,8 +6,8 @@ __pycache__/
 venv/
 .env
 
-# Cached mining results (keep the cache dir, ignore its contents)
-data/cache/*.joblib
+# Cached mining results and cloned repo cache
+data/cache/
 
 # Cloned repos
 data/repos/
