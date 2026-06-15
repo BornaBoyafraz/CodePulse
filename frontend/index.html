@@ -11,9 +11,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <!-- Plotly -->
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" defer></script>
-
   <!-- Styles -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -72,15 +69,6 @@
         </svg>
         <span id="error-text"></span>
       </div>
-    </div>
-
-    <!-- Skeleton loading (shown while pipeline runs) -->
-    <div id="skeleton-screen" class="skeleton-screen" hidden aria-label="Loading results" aria-live="polite">
-      <div class="skeleton-bar wide"></div>
-      <div class="skeleton-bar medium"></div>
-      <div class="skeleton-bar short"></div>
-      <div class="skeleton-bar wide"></div>
-      <div class="skeleton-bar medium"></div>
     </div>
 
     <!-- How it works expandable -->
@@ -209,6 +197,7 @@
 
   </div><!-- /#results-screen -->
 
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
