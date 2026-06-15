@@ -466,10 +466,8 @@ function pollResults(jobId) {
       if (!res.ok) {
         clearInterval(pollTimer);
         pollTimer = null;
+        showInputState();
         showError(`Could not retrieve results (job: ${jobId}).`);
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Analyze →';
-        loadingState.classList.remove('visible');
         return;
       }
 
